@@ -12,7 +12,7 @@ export async function requireAdmin() {
     } = await supabaseServer.auth.getUser();
 
     if (error || !user) {
-      throw new AppError('UNAUTHORIZED', 401, 'Anda harus login terlebih dahulu');
+      throw new AppError('UNAUTHENTICATED', 401, 'Anda harus login terlebih dahulu');
     }
 
     // 1. Check user role in public.users table

@@ -1,6 +1,7 @@
 export type ErrorCode =
   | 'VALIDATION_ERROR'
   | 'UNAUTHENTICATED'
+  | 'UNAUTHORIZED'
   | 'FORBIDDEN'
   | 'NOT_FOUND'
   | 'CONFLICT'
