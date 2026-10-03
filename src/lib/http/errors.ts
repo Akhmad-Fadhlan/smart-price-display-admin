@@ -11,6 +11,7 @@ export type ErrorCode =
   | 'GROUP_TYPE_MISMATCH'
   | 'CUSTOM_PROFILE_MISMATCH'
   | 'RATE_LIMITED'
+  | 'DATABASE_ERROR'
   | 'INTERNAL_ERROR';
 
 export class AppError extends Error {
