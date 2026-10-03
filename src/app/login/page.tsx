@@ -30,11 +30,17 @@ function LoginForm() {
       const supabase = createClient();
 
       if (supabase) {
-        const origin = window.location.origin;
+        const getSiteUrl = () => {
+          let siteUrl =
+            process.env.NEXT_PUBLIC_SITE_URL ||
+            (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+          return siteUrl.replace(/\/$/, '');
+        };
+
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: `${origin}/auth/callback`,
+            redirectTo: `${getSiteUrl()}/auth/callback`,
           },
         });
 
