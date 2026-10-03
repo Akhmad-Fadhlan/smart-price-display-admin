@@ -129,7 +129,7 @@ export default function DevicesPage() {
         onAddDevice={() => setIsAddOpen(true)}
       />
 
-      <div className="p-6 space-y-4 max-w-7xl mx-auto">
+      <div className="p-4 sm:p-6 space-y-4 max-w-7xl mx-auto">
         {/* Search & Filter Toolbar */}
         <Card className="p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">

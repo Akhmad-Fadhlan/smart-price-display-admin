@@ -165,7 +165,7 @@ export default function DisplayProfilesPage() {
         </Link>
       </Header>
 
-      <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
         {loading ? (
           <div className="p-12 text-center text-slate-500">Memuat daftar profile...</div>
         ) : profiles.length === 0 ? (
