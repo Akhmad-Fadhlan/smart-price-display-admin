@@ -464,7 +464,7 @@ export async function createCustomProfileForDevice(deviceId: string, name?: stri
     alignment: 'center' as const,
     brightness: 80,
     rotation: 0 as const,
-    layout_config: { schema_version: 1, mode: 'auto', elements: {} },
+    layout_config: { schema_version: 1, mode: 'auto' as const, elements: {} },
   };
 
   const profileName = name || `${dev.name} (Custom)`;

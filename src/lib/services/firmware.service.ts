@@ -42,6 +42,15 @@ export async function processDeviceHeartbeat(device: DeviceRecord, input: z.infe
       .eq('id', effective.display_profile_id)
       .single();
 
+    if (!prf) {
+      return {
+        server_time: now,
+        config_outdated: false,
+        latest_profile_id: null,
+        latest_version: null,
+      };
+    }
+
     const { data: sync } = await supabase
       .from('device_sync_status')
       .select('*')

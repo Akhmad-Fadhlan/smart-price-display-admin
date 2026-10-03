@@ -30,12 +30,12 @@ export async function middleware(request: NextRequest) {
       getAll() {
         return request.cookies.getAll();
       },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+      setAll(cookiesToSet: any[]) {
+        cookiesToSet.forEach(({ name, value }: { name: string; value: string }) => request.cookies.set(name, value));
         supabaseResponse = NextResponse.next({
           request,
         });
-        cookiesToSet.forEach(({ name, value, options }) =>
+        cookiesToSet.forEach(({ name, value, options }: { name: string; value: string; options?: any }) =>
           supabaseResponse.cookies.set(name, value, options)
         );
       },
@@ -72,4 +72,3 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };
-
