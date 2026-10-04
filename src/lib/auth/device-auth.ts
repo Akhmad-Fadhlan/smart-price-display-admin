@@ -3,8 +3,11 @@ import { store } from '../storage/store';
 import { getSupabaseClient } from '../supabase/get-client';
 
 export async function deviceAuth(req: Request) {
-  const uid = req.headers.get('x-device-uid') || req.headers.get('X-Device-UID');
-  const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
+  const rawUid = req.headers.get('x-device-uid') || req.headers.get('X-Device-UID');
+  const rawAuthHeader = req.headers.get('authorization') || req.headers.get('Authorization');
+
+  const uid = rawUid?.trim();
+  const token = rawAuthHeader?.replace(/^Bearer\s+/i, '')?.trim();
 
   if (!uid || !token) {
     throw new AppError('UNAUTHENTICATED', 401, 'Kredensial perangkat tidak lengkap');
@@ -29,7 +32,7 @@ export async function deviceAuth(req: Request) {
       .eq('device_id', dev.id)
       .maybeSingle();
 
-    if (!cred || cred.token_hash !== token) {
+    if (!cred || cred.token_hash?.trim() !== token) {
       throw new AppError('UNAUTHENTICATED', 401, 'Token atau Device UID tidak valid');
     }
 
@@ -50,7 +53,7 @@ export async function deviceAuth(req: Request) {
   }
 
   const cred = store.credentials.get(targetDevice.id);
-  if (!cred || cred.token !== token) {
+  if (!cred || cred.token?.trim() !== token) {
     throw new AppError('UNAUTHENTICATED', 401, 'Token atau Device UID tidak valid');
   }
 
