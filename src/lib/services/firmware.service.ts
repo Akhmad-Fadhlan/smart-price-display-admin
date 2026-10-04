@@ -68,6 +68,8 @@ export async function processDeviceHeartbeat(device: DeviceRecord, input: z.infe
     const outdated =
       !sync ||
       sync.force_resync ||
+      sync.synced_profile_id !== prf.id ||
+      sync.synced_version !== prf.version ||
       !isProfileMatch ||
       data.current_profile_version !== prf.version;
 
@@ -238,11 +240,15 @@ export async function getDeviceConfig(device: DeviceRecord) {
 
     const { data: syncRow } = await supabase
       .from('device_sync_status')
-      .select('force_resync, synced_version, sync_status')
+      .select('force_resync, synced_version, synced_profile_id, sync_status')
       .eq('device_id', device.id)
       .maybeSingle();
 
-    const isForceResync = Boolean(syncRow?.force_resync || syncRow?.synced_version !== profile.version);
+    const isForceResync = Boolean(
+      syncRow?.force_resync ||
+      syncRow?.synced_profile_id !== profile.id ||
+      syncRow?.synced_version !== profile.version
+    );
 
     // Update status to 'syncing' if pending/failed/force_resync (DO NOT mark synced until sync-ack or matching heartbeat!)
     if (isForceResync || syncRow?.sync_status === 'pending' || syncRow?.sync_status === 'failed') {
