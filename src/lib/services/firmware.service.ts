@@ -57,24 +57,31 @@ export async function processDeviceHeartbeat(device: DeviceRecord, input: z.infe
       .eq('device_id', device.id)
       .maybeSingle();
 
+    const isProfileMatch =
+      Boolean(data.current_profile_id) &&
+      Boolean(prf.id) &&
+      data.current_profile_id?.toLowerCase() === prf.id.toLowerCase();
+
     const outdated =
       !sync ||
       sync.force_resync ||
-      data.current_profile_id !== prf.id ||
+      !isProfileMatch ||
       data.current_profile_version !== prf.version;
 
-    if (!outdated && sync && sync.sync_status !== 'synced') {
+    if (!outdated || (isProfileMatch && data.current_profile_version === prf.version)) {
       await supabase
         .from('device_sync_status')
-        .update({
+        .upsert({
+          device_id: device.id,
+          profile_id: prf.id,
+          profile_version: prf.version,
           synced_profile_id: prf.id,
           synced_version: prf.version,
           sync_status: 'synced',
           force_resync: false,
           last_sync: now,
           last_error: null,
-        })
-        .eq('device_id', device.id);
+        }, { onConflict: 'device_id' });
     }
 
     return {
@@ -247,29 +254,27 @@ export async function processDeviceSyncAck(device: DeviceRecord, input: z.infer<
         .eq('id', effective.display_profile_id)
         .single();
 
-      if (data.success) {
-        if (prf && data.profile_id === prf.id && data.version === prf.version) {
-          await supabase
-            .from('device_sync_status')
-            .update({
-              synced_profile_id: data.profile_id,
-              synced_version: data.version,
-              sync_status: 'synced',
-              force_resync: false,
-              last_sync: now,
-              last_error: null,
-            })
-            .eq('device_id', device.id);
-        }
-      } else {
-        if (prf && data.profile_id === prf.id && data.version === prf.version) {
-          await supabase
-            .from('device_sync_status')
-            .update({
-              sync_status: 'failed',
-              last_error: (data.error || 'Sync failed').slice(0, 200),
-            })
-            .eq('device_id', device.id);
+      if (prf && data.profile_id.toLowerCase() === prf.id.toLowerCase() && data.version === prf.version) {
+        if (data.success) {
+          await supabase.from('device_sync_status').upsert({
+            device_id: device.id,
+            profile_id: prf.id,
+            profile_version: prf.version,
+            synced_profile_id: prf.id,
+            synced_version: prf.version,
+            sync_status: 'synced',
+            force_resync: false,
+            last_sync: now,
+            last_error: null,
+          }, { onConflict: 'device_id' });
+        } else {
+          await supabase.from('device_sync_status').upsert({
+            device_id: device.id,
+            profile_id: prf.id,
+            profile_version: prf.version,
+            sync_status: 'failed',
+            last_error: (data.error || 'Sync failed').slice(0, 200),
+          }, { onConflict: 'device_id' });
         }
       }
     }
