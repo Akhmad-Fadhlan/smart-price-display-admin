@@ -42,7 +42,7 @@ export async function processDeviceHeartbeat(device: DeviceRecord, input: z.infe
     const { data: prf } = await supabase
       .from('display_profiles')
       .select('id, version')
-      .eq('id', effective.display_profile_id)
+      .eq('id', effectiveProfileId)
       .single();
 
     if (!prf) {

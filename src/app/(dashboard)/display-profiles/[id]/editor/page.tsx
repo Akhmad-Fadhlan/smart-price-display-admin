@@ -9,6 +9,7 @@ import { Input, Select } from '@/components/ui/Input';
 import { DisplayPreview } from '@/components/display/DisplayPreview';
 import { DeviceType, FontSizePreset } from '@/lib/display/devices';
 import { DisplayConfigData } from '@/lib/display/renderer';
+import { LCD_THEMES } from '@/lib/display/themes';
 import {
   ArrowLeft,
   Save,
@@ -49,6 +50,13 @@ export default function DisplayEditorPage() {
   const [rotation, setRotation] = useState<0 | 90 | 180 | 270>(0);
   const [layoutMode, setLayoutMode] = useState<'auto' | 'custom'>('auto');
 
+  // Theme & per-element color/font state
+  const [theme, setTheme] = useState<string>('midnight_circuit');
+  const [productFontColor, setProductFontColor] = useState<string>('#ffffff');
+  const [productFontSize, setProductFontSize] = useState<FontSizePreset>('large');
+  const [priceFontColor, setPriceFontColor] = useState<string>('#fde047');
+  const [priceFontSize, setPriceFontSize] = useState<FontSizePreset>('xlarge');
+
   // Custom Layout Coordinates
   const [productX, setProductX] = useState(50);
   const [productY, setProductY] = useState(25);
@@ -75,6 +83,11 @@ export default function DisplayEditorPage() {
         setBrightness(cfg.brightness !== undefined ? cfg.brightness : 80);
         setRotation(cfg.rotation !== undefined ? cfg.rotation : 0);
         setLayoutMode(cfg.layout_config?.mode || 'auto');
+        setTheme(cfg.theme || 'midnight_circuit');
+        setProductFontColor(cfg.product_font_color || '#ffffff');
+        setProductFontSize(cfg.product_font_size || 'large');
+        setPriceFontColor(cfg.price_font_color || '#fde047');
+        setPriceFontSize(cfg.price_font_size || 'xlarge');
 
         const el = cfg.layout_config?.elements;
         if (el) {
@@ -105,6 +118,11 @@ export default function DisplayEditorPage() {
     alignment: alignment,
     brightness: brightness,
     rotation: rotation,
+    theme: theme,
+    product_font_color: productFontColor,
+    product_font_size: productFontSize,
+    price_font_color: priceFontColor,
+    price_font_size: priceFontSize,
     layout_config: {
       schema_version: 1,
       mode: layoutMode,
@@ -143,6 +161,11 @@ export default function DisplayEditorPage() {
             alignment: alignment,
             brightness: brightness,
             rotation: rotation,
+            theme: theme,
+            product_font_color: productFontColor,
+            product_font_size: productFontSize,
+            price_font_color: priceFontColor,
+            price_font_size: priceFontSize,
             layout_config: {
               schema_version: 1,
               mode: layoutMode,
@@ -273,6 +296,167 @@ export default function DisplayEditorPage() {
                   maxLength={48}
                   helperText="Teks promo di baris bawah (maks 48 karakter)"
                 />
+              </CardBody>
+            </Card>
+
+            {/* ── TEMA & WARNA LCD ── */}
+            <Card>
+              <CardHeader
+                title={
+                  <span className="flex items-center gap-2">
+                    <Palette className="w-4 h-4 text-purple-600" />
+                    <span>Tema & Warna LCD</span>
+                  </span>
+                }
+              />
+              <CardBody className="p-5 space-y-5">
+
+                {/* Grid 2x5 Theme Selector */}
+                <div>
+                  <p className="text-xs font-semibold text-slate-700 mb-2">Pilih Tema Background</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {LCD_THEMES.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => {
+                          setTheme(t.id);
+                          // Apply theme default colors if user hasn't customized
+                          setProductFontColor(t.defaultProductColor);
+                          setPriceFontColor(t.defaultPriceColor);
+                        }}
+                        className={`relative overflow-hidden rounded-lg border-2 transition-all ${
+                          theme === t.id
+                            ? 'border-purple-500 ring-2 ring-purple-400 ring-offset-1 scale-[1.02]'
+                            : 'border-slate-200 hover:border-slate-400'
+                        }`}
+                        title={t.label}
+                      >
+                        {/* Thumbnail preview */}
+                        <div
+                          className="w-full h-12 relative overflow-hidden"
+                          style={{ background: t.bgGradient }}
+                        >
+                          {/* Mini pattern overlay */}
+                          <div
+                            className="absolute inset-0"
+                            style={{ opacity: t.patternOpacity }}
+                            dangerouslySetInnerHTML={{
+                              __html: `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+                                <defs><pattern id="tp_${t.id}" x="0" y="0" width="100%" height="100%" patternUnits="userSpaceOnUse">${t.patternSvg}</pattern></defs>
+                                <rect width="100%" height="100%" fill="url(#tp_${t.id})"/>
+                              </svg>`,
+                            }}
+                          />
+                          {/* Mini icon */}
+                          <div
+                            className="absolute inset-0 pointer-events-none scale-[0.35] origin-top-right"
+                            dangerouslySetInnerHTML={{ __html: t.iconsSvg }}
+                          />
+                          {/* Selected checkmark */}
+                          {theme === t.id && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <CheckCircle2 className="w-5 h-5 text-white drop-shadow-lg" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="px-2 py-1 text-center">
+                          <span className="text-[10px] font-semibold text-slate-700 leading-tight block">{t.label}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Per-element Font Color & Size */}
+                <div className="space-y-4 pt-3 border-t border-slate-100">
+                  {/* Nama Produk */}
+                  <div>
+                    <p className="text-xs font-semibold text-slate-700 mb-2">🏷️ Nama Produk</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-medium text-slate-600 mb-1">Warna Font</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={productFontColor}
+                            onChange={(e) => setProductFontColor(e.target.value)}
+                            className="w-9 h-9 rounded border border-slate-300 cursor-pointer p-0.5 bg-white"
+                          />
+                          <div className="flex flex-wrap gap-1">
+                            {['#ffffff','#fef3c7','#d1fae5','#bfdbfe','#fce7f3','#fde047','#34d399','#f472b6'].map((c) => (
+                              <button
+                                key={c}
+                                type="button"
+                                onClick={() => setProductFontColor(c)}
+                                className={`w-5 h-5 rounded-full border-2 transition-all ${
+                                  productFontColor === c ? 'border-slate-900 scale-110' : 'border-transparent hover:border-slate-400'
+                                }`}
+                                style={{ backgroundColor: c }}
+                                title={c}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <Select
+                        label="Ukuran Font"
+                        value={productFontSize}
+                        onChange={(e) => setProductFontSize(e.target.value as FontSizePreset)}
+                        options={[
+                          { value: 'small', label: 'Small (12px)' },
+                          { value: 'medium', label: 'Medium (18px)' },
+                          { value: 'large', label: 'Large (28px)' },
+                          { value: 'xlarge', label: 'X-Large (40px)' },
+                        ]}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Harga */}
+                  <div>
+                    <p className="text-xs font-semibold text-slate-700 mb-2">💰 Harga</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-medium text-slate-600 mb-1">Warna Font</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={priceFontColor}
+                            onChange={(e) => setPriceFontColor(e.target.value)}
+                            className="w-9 h-9 rounded border border-slate-300 cursor-pointer p-0.5 bg-white"
+                          />
+                          <div className="flex flex-wrap gap-1">
+                            {['#fde047','#fbbf24','#34d399','#38bdf8','#f472b6','#c084fc','#ff00aa','#ffffff'].map((c) => (
+                              <button
+                                key={c}
+                                type="button"
+                                onClick={() => setPriceFontColor(c)}
+                                className={`w-5 h-5 rounded-full border-2 transition-all ${
+                                  priceFontColor === c ? 'border-slate-900 scale-110' : 'border-transparent hover:border-slate-400'
+                                }`}
+                                style={{ backgroundColor: c }}
+                                title={c}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <Select
+                        label="Ukuran Font"
+                        value={priceFontSize}
+                        onChange={(e) => setPriceFontSize(e.target.value as FontSizePreset)}
+                        options={[
+                          { value: 'small', label: 'Small (12px)' },
+                          { value: 'medium', label: 'Medium (18px)' },
+                          { value: 'large', label: 'Large (28px)' },
+                          { value: 'xlarge', label: 'X-Large (40px)' },
+                        ]}
+                      />
+                    </div>
+                  </div>
+                </div>
+
               </CardBody>
             </Card>
 
