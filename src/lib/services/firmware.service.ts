@@ -65,15 +65,21 @@ export async function processDeviceHeartbeat(device: DeviceRecord, input: z.infe
       Boolean(prf.id) &&
       data.current_profile_id?.toLowerCase() === prf.id.toLowerCase();
 
+    const isVersionMatch =
+      data.current_profile_version !== undefined &&
+      data.current_profile_version !== null &&
+      data.current_profile_version === prf.version;
+
+    const isDeviceRunningTarget = isProfileMatch && isVersionMatch;
+
     const outdated =
       !sync ||
-      sync.force_resync ||
+      Boolean(sync.force_resync) ||
       sync.synced_profile_id !== prf.id ||
       sync.synced_version !== prf.version ||
-      !isProfileMatch ||
-      data.current_profile_version !== prf.version;
+      !isDeviceRunningTarget;
 
-    if (!outdated || (isProfileMatch && data.current_profile_version === prf.version)) {
+    if (!outdated && isDeviceRunningTarget) {
       await supabase
         .from('device_sync_status')
         .upsert({
