@@ -2,6 +2,7 @@ import { deviceAuth } from '@/lib/auth/device-auth';
 import { jsonResponse } from '@/lib/http/response';
 import { withApi } from '@/lib/http/with-api';
 import { getDeviceConfig } from '@/lib/services/firmware.service';
+import { getSupabaseClient } from '@/lib/supabase/get-client';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -14,14 +15,29 @@ export const GET = withApi(async (req: Request) => {
     return new NextResponse(null, { status: 204 });
   }
 
-  const etag = `"${result.profile_id}:${result.version}"`;
-  const ifNoneMatch = req.headers.get('if-none-match');
+  const rawIfNoneMatch = req.headers.get('if-none-match');
+  const cleanIfNoneMatch = rawIfNoneMatch?.replace(/^"|"$/g, '').trim().toLowerCase();
+  const targetTag = `${result.profile_id}:${result.version}`.toLowerCase();
 
-  if (ifNoneMatch === etag) {
+  if (cleanIfNoneMatch && cleanIfNoneMatch === targetTag) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      await supabase.from('device_sync_status').upsert({
+        device_id: device.id,
+        profile_id: result.profile_id,
+        profile_version: result.version,
+        synced_profile_id: result.profile_id,
+        synced_version: result.version,
+        sync_status: 'synced',
+        force_resync: false,
+        last_sync: new Date().toISOString(),
+        last_error: null,
+      }, { onConflict: 'device_id' });
+    }
     return new NextResponse(null, { status: 304 });
   }
 
   const res = jsonResponse(result);
-  res.headers.set('ETag', etag);
+  res.headers.set('ETag', `"${result.profile_id}:${result.version}"`);
   return res;
 });
