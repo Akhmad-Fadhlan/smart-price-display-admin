@@ -197,6 +197,17 @@ export async function getDeviceConfig(device: DeviceRecord) {
       profileId = grpAsg?.[0]?.display_profile_id;
     }
 
+    // 3.5 Check device_sync_status table for profile_id
+    if (!profileId) {
+      const { data: syncRow } = await supabase
+        .from('device_sync_status')
+        .select('profile_id')
+        .eq('device_id', device.id)
+        .limit(1);
+
+      profileId = syncRow?.[0]?.profile_id;
+    }
+
     // 4. If STILL no profile assigned, auto-create a custom profile for this device
     if (!profileId) {
       try {
