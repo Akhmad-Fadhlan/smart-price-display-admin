@@ -22,13 +22,15 @@ export async function processDeviceHeartbeat(device: DeviceRecord, input: z.infe
 
     await supabase.from('devices').update(updateData).eq('id', device.id);
 
-    const { data: effective } = await supabase
+    const { data: effectiveRows } = await supabase
       .from('device_effective_assignments')
       .select('display_profile_id')
       .eq('device_id', device.id)
-      .maybeSingle();
+      .limit(1);
 
-    if (!effective?.display_profile_id) {
+    const effectiveProfileId = effectiveRows?.[0]?.display_profile_id;
+
+    if (!effectiveProfileId) {
       return {
         server_time: now,
         config_outdated: false,
@@ -153,13 +155,13 @@ export async function getDeviceConfig(device: DeviceRecord) {
 
   if (supabase) {
     // 1. Try view device_effective_assignments
-    let { data: effective } = await supabase
+    let { data: effectiveRows } = await supabase
       .from('device_effective_assignments')
       .select('display_profile_id')
       .eq('device_id', device.id)
-      .maybeSingle();
+      .limit(1);
 
-    let profileId = effective?.display_profile_id;
+    let profileId = effectiveRows?.[0]?.display_profile_id;
 
     // 2. Direct fallback on device_profile_assignments table
     if (!profileId) {
@@ -169,10 +171,9 @@ export async function getDeviceConfig(device: DeviceRecord) {
         .eq('device_id', device.id)
         .eq('is_active', true)
         .order('assigned_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(1);
 
-      profileId = directAsg?.display_profile_id;
+      profileId = directAsg?.[0]?.display_profile_id;
     }
 
     // 3. Direct fallback on group assignment if device is in a group
@@ -183,10 +184,9 @@ export async function getDeviceConfig(device: DeviceRecord) {
         .eq('group_id', device.group_id)
         .eq('is_active', true)
         .order('assigned_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(1);
 
-      profileId = grpAsg?.display_profile_id;
+      profileId = grpAsg?.[0]?.display_profile_id;
     }
 
     // 4. If STILL no profile assigned, auto-create a custom profile for this device
@@ -318,17 +318,19 @@ export async function processDeviceSyncAck(device: DeviceRecord, input: z.infer<
   const supabase = getSupabaseClient();
 
   if (supabase) {
-    const { data: effective } = await supabase
+    const { data: effectiveRows } = await supabase
       .from('device_effective_assignments')
       .select('display_profile_id')
       .eq('device_id', device.id)
-      .maybeSingle();
+      .limit(1);
 
-    if (effective?.display_profile_id) {
+    const profileId = effectiveRows?.[0]?.display_profile_id;
+
+    if (profileId) {
       const { data: prf } = await supabase
         .from('display_profiles')
         .select('id, version')
-        .eq('id', effective.display_profile_id)
+        .eq('id', profileId)
         .single();
 
       if (prf && data.profile_id.toLowerCase() === prf.id.toLowerCase()) {
