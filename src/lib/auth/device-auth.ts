@@ -52,20 +52,15 @@ export async function deviceAuth(req: Request) {
       .from('device_credentials')
       .select('token_hash')
       .eq('device_id', dev.id)
-      .maybeSingle();
+      .limit(1);
 
     // Jika RLS memblokir (error atau cred null), tolak dengan 401
-    if (credErr) {
-      console.error('[device-auth] RLS error saat mengambil credentials:', credErr.message);
+    if (credErr || !cred || cred.length === 0) {
+      console.error('[device-auth] Error saat mengambil credentials:', credErr?.message);
       throw new AppError('UNAUTHENTICATED', 401, 'Token atau Device UID tidak valid');
     }
 
-    if (!cred) {
-      // Credential belum di-assign → tolak
-      throw new AppError('UNAUTHENTICATED', 401, 'Token atau Device UID tidak valid');
-    }
-
-    if (cred.token_hash?.trim() !== token) {
+    if (cred[0].token_hash?.trim() !== token) {
       throw new AppError('UNAUTHENTICATED', 401, 'Token atau Device UID tidak valid');
     }
 
