@@ -41,5 +41,10 @@ export const GET = withApi(async (req: Request) => {
   const res = jsonResponse(result);
   res.headers.set('ETag', `"${result.profile_id}:${result.version}"`);
   res.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    try {
+      res.headers.set('X-Supabase-Url-Host', new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname);
+    } catch (e) {}
+  }
   return res;
 });
