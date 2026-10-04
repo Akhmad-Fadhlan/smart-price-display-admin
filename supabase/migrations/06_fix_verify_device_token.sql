@@ -1,5 +1,5 @@
 -- ============================================================
--- MIGRATION 06: Fix verify_device_token RPC type mismatch (inet -> text)
+-- MIGRATION 06: Fix verify_device_token RPC type mismatch (inet -> text, smallint -> int)
 -- Jalankan di Supabase SQL Editor
 -- ============================================================
 
@@ -36,11 +36,11 @@ begin
     return; -- token salah
   end if;
 
-  -- Return data device dengan cast d.ip_address::text
+  -- Return data device dengan cast eksplisit agar tipe data persis sesuai return table
   return query
     select d.id, d.device_uid, d.name, d.device_type::text,
            d.group_id, d.firmware_version, d.last_seen,
-           d.ip_address::text, d.battery, d.signal_strength,
+           d.ip_address::text, d.battery::int, d.signal_strength::int,
            d.created_at, d.updated_at
       from public.devices d
      where d.id = v_device_id;
