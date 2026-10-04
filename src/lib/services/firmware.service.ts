@@ -3,6 +3,7 @@ import { store, DeviceRecord } from '../storage/store';
 import { heartbeatSchema, syncAckSchema } from '../validations';
 import { z } from 'zod';
 import { getSupabaseClient } from '../supabase/get-client';
+import { createCustomProfileForDevice } from './devices.service';
 
 export async function processDeviceHeartbeat(device: DeviceRecord, input: z.infer<typeof heartbeatSchema>) {
   const data = heartbeatSchema.parse(input);
@@ -254,7 +255,7 @@ export async function getDeviceConfig(device: DeviceRecord) {
         synced_version: profile.version,
         sync_status: 'synced',
         force_resync: false,
-        last_sync: now,
+        last_sync: new Date().toISOString(),
         last_error: null,
       }, { onConflict: 'device_id' });
 
