@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/Button';
-import { Select } from '../ui/Input';
+import { Select, Input } from '../ui/Input';
 import { Card, CardHeader, CardBody } from '../ui/Card';
-import { Cpu, Send, CheckCircle2, XCircle, ArrowDownCircle, RefreshCw } from 'lucide-react';
+import { Cpu, Send, CheckCircle2, XCircle, ArrowDownCircle } from 'lucide-react';
 
 interface SimulatorProps {
   devices: { id: string; name: string; device_uid: string; device_type: string }[];
@@ -13,26 +13,39 @@ interface SimulatorProps {
 
 export const FirmwareSimulator: React.FC<SimulatorProps> = ({ devices, onActionComplete }) => {
   const [selectedDevId, setSelectedDevId] = useState<string>(devices[0]?.id || '');
+  const [customToken, setCustomToken] = useState<string>('');
   const [logs, setLogs] = useState<{ time: string; type: 'req' | 'res' | 'err'; text: string }[]>([]);
   const [loading, setLoading] = useState(false);
 
   const selectedDevice = devices.find((d) => d.id === selectedDevId) || devices[0];
+
+  useEffect(() => {
+    if (selectedDevice) {
+      if (selectedDevice.id === 'dev-c6-01') setCustomToken('dpt_demo_token_c6_01_secret');
+      else if (selectedDevice.id === 'dev-c6-02') setCustomToken('dpt_demo_token_c6_02_secret');
+      else if (selectedDevice.id === 'dev-lily-01') setCustomToken('dpt_demo_token_lily_01_secret');
+      else if (selectedDevice.id === 'dev-lily-02') setCustomToken('dpt_demo_token_lily_02_secret');
+      else setCustomToken('');
+    }
+  }, [selectedDevice?.id]);
 
   const addLog = (type: 'req' | 'res' | 'err', text: string) => {
     const time = new Date().toLocaleTimeString();
     setLogs((prev) => [{ time, type, text }, ...prev.slice(0, 15)]);
   };
 
-  const getSimToken = (id: string) => {
-    if (id === 'dev-c6-01') return 'dpt_demo_token_c6_01_secret';
-    if (id === 'dev-c6-02') return 'dpt_demo_token_c6_02_secret';
-    if (id === 'dev-lily-01') return 'dpt_demo_token_lily_01_secret';
-    if (id === 'dev-lily-02') return 'dpt_demo_token_lily_02_secret';
-    return 'dpt_demo_token_c6_01_secret';
+  const getToken = () => {
+    return customToken.trim();
   };
 
   const handleSendHeartbeat = async () => {
     if (!selectedDevice) return;
+    const token = getToken();
+    if (!token) {
+      addLog('err', 'Masukkan Device Token terlebih dahulu (Copy dari halaman detail device)');
+      return;
+    }
+
     setLoading(true);
     addLog('req', `POST /api/device/heartbeat [${selectedDevice.device_uid}]`);
 
@@ -42,15 +55,15 @@ export const FirmwareSimulator: React.FC<SimulatorProps> = ({ devices, onActionC
         headers: {
           'Content-Type': 'application/json',
           'X-Device-UID': selectedDevice.device_uid,
-          'Authorization': `Bearer ${getSimToken(selectedDevice.id)}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          firmware_version: '1.0.3',
-          current_profile_id: 'prf-es-teh',
-          current_profile_version: 3,
+          firmware_version: 'v1.0.0',
+          current_profile_id: null,
+          current_profile_version: 0,
           ip_address: '192.168.1.20',
-          battery: 95,
-          signal_strength: -55,
+          battery: null,
+          signal_strength: -54,
           timestamp: new Date().toISOString(),
         }),
       });
@@ -74,6 +87,12 @@ export const FirmwareSimulator: React.FC<SimulatorProps> = ({ devices, onActionC
 
   const handleGetConfig = async () => {
     if (!selectedDevice) return;
+    const token = getToken();
+    if (!token) {
+      addLog('err', 'Masukkan Device Token terlebih dahulu');
+      return;
+    }
+
     setLoading(true);
     addLog('req', `GET /api/device/config [${selectedDevice.device_uid}]`);
 
@@ -82,7 +101,7 @@ export const FirmwareSimulator: React.FC<SimulatorProps> = ({ devices, onActionC
         method: 'GET',
         headers: {
           'X-Device-UID': selectedDevice.device_uid,
-          'Authorization': `Bearer ${getSimToken(selectedDevice.id)}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 
@@ -109,6 +128,12 @@ export const FirmwareSimulator: React.FC<SimulatorProps> = ({ devices, onActionC
 
   const handleSendAck = async (success: boolean) => {
     if (!selectedDevice) return;
+    const token = getToken();
+    if (!token) {
+      addLog('err', 'Masukkan Device Token terlebih dahulu');
+      return;
+    }
+
     setLoading(true);
     addLog('req', `POST /api/device/sync-ack [success=${success}]`);
 
@@ -118,11 +143,11 @@ export const FirmwareSimulator: React.FC<SimulatorProps> = ({ devices, onActionC
         headers: {
           'Content-Type': 'application/json',
           'X-Device-UID': selectedDevice.device_uid,
-          'Authorization': `Bearer ${getSimToken(selectedDevice.id)}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           profile_id: 'prf-es-teh',
-          version: 3,
+          version: 1,
           success,
           error: success ? undefined : 'Simulation rendering error test',
         }),
@@ -164,32 +189,34 @@ export const FirmwareSimulator: React.FC<SimulatorProps> = ({ devices, onActionC
               label: `${d.name} (${d.device_uid}) - ${d.device_type.toUpperCase()}`,
             }))}
           />
-          <div className="flex items-end gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={handleSendHeartbeat}
-              isLoading={loading}
-            >
-              <Send className="w-3.5 h-3.5 text-blue-600" />
-              <span>1. Heartbeat</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={handleGetConfig}
-              isLoading={loading}
-            >
-              <ArrowDownCircle className="w-3.5 h-3.5 text-emerald-600" />
-              <span>2. GET Config</span>
-            </Button>
-          </div>
+          <Input
+            label="Device Token (Secret)"
+            placeholder="Paste Token Secret (dpt_...)"
+            value={customToken}
+            onChange={(e) => setCustomToken(e.target.value)}
+          />
         </div>
 
-        <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
-          <span className="text-xs text-slate-500 font-medium">Respon Perangkat (ACK):</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSendHeartbeat}
+            isLoading={loading}
+          >
+            <Send className="w-3.5 h-3.5 text-blue-600" />
+            <span>1. Send Heartbeat</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleGetConfig}
+            isLoading={loading}
+          >
+            <ArrowDownCircle className="w-3.5 h-3.5 text-emerald-600" />
+            <span>2. GET Config</span>
+          </Button>
+          <span className="text-xs text-slate-400 font-medium px-1">| Respon (ACK):</span>
           <Button
             variant="outline"
             size="sm"
@@ -216,7 +243,7 @@ export const FirmwareSimulator: React.FC<SimulatorProps> = ({ devices, onActionC
         <div className="bg-slate-900 rounded-md p-3 font-mono text-xs text-slate-200 h-28 overflow-y-auto space-y-1">
           {logs.length === 0 ? (
             <p className="text-slate-500 text-[11px] italic">
-              Klik tombol di atas untuk mengirim payload HTTP dari perangkat...
+              Klik tombol di atas untuk mengirim payload HTTP simulator...
             </p>
           ) : (
             logs.map((l, i) => (
