@@ -16,8 +16,9 @@ export async function deviceAuth(req: Request) {
   const supabase = getSupabaseClient();
 
   if (supabase) {
+    // --- Coba RPC verify_device_token (Security Definer, bypass RLS) ---
     try {
-      const { data: rpcDev, error: rpcErr } = await supabase.rpc('verify_device_credentials', {
+      const { data: rpcDev, error: rpcErr } = await supabase.rpc('verify_device_token', {
         p_uid: uid,
         p_token: token,
       });
@@ -25,13 +26,21 @@ export async function deviceAuth(req: Request) {
       if (!rpcErr && rpcDev && Array.isArray(rpcDev) && rpcDev.length > 0) {
         return { device: rpcDev[0] };
       }
-    } catch (e) {
-      // Ignore missing RPC error and proceed to fallback
+
+      if (!rpcErr && rpcDev !== null) {
+        // RPC berhasil tapi array kosong = token/uid salah
+        throw new AppError('UNAUTHENTICATED', 401, 'Token atau Device UID tidak valid');
+      }
+      // Jika rpcErr (fungsi belum ada), lanjut ke fallback query
+    } catch (e: unknown) {
+      if (e instanceof AppError) throw e;
+      // RPC belum ada di DB, gunakan fallback direct query
     }
 
+    // --- Fallback: query langsung (butuh service role key di Vercel env) ---
     const { data: dev } = await supabase
       .from('devices')
-      .select('*')
+      .select('id, device_uid, name, device_type, group_id, firmware_version, last_seen, ip_address, battery, signal_strength, created_at, updated_at')
       .ilike('device_uid', uid)
       .maybeSingle();
 
@@ -39,20 +48,31 @@ export async function deviceAuth(req: Request) {
       throw new AppError('UNAUTHENTICATED', 401, 'Token atau Device UID tidak valid');
     }
 
-    const { data: cred } = await supabase
+    const { data: cred, error: credErr } = await supabase
       .from('device_credentials')
-      .select('*')
+      .select('token_hash')
       .eq('device_id', dev.id)
       .maybeSingle();
 
-    if (cred && cred.token_hash?.trim() !== token) {
+    // Jika RLS memblokir (error atau cred null), tolak dengan 401
+    if (credErr) {
+      console.error('[device-auth] RLS error saat mengambil credentials:', credErr.message);
+      throw new AppError('UNAUTHENTICATED', 401, 'Token atau Device UID tidak valid');
+    }
+
+    if (!cred) {
+      // Credential belum di-assign → tolak
+      throw new AppError('UNAUTHENTICATED', 401, 'Token atau Device UID tidak valid');
+    }
+
+    if (cred.token_hash?.trim() !== token) {
       throw new AppError('UNAUTHENTICATED', 401, 'Token atau Device UID tidak valid');
     }
 
     return { device: dev };
   }
 
-  // Fallback to InMemStore
+  // Fallback to InMemStore (development only)
   let targetDevice = null;
   for (const dev of Array.from(store.devices.values())) {
     if (dev.device_uid.toUpperCase() === uid.toUpperCase()) {
