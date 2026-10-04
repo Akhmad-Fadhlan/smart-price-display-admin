@@ -16,6 +16,19 @@ export async function deviceAuth(req: Request) {
   const supabase = getSupabaseClient();
 
   if (supabase) {
+    try {
+      const { data: rpcDev, error: rpcErr } = await supabase.rpc('verify_device_credentials', {
+        p_uid: uid,
+        p_token: token,
+      });
+
+      if (!rpcErr && rpcDev && Array.isArray(rpcDev) && rpcDev.length > 0) {
+        return { device: rpcDev[0] };
+      }
+    } catch (e) {
+      // Ignore missing RPC error and proceed to fallback
+    }
+
     const { data: dev } = await supabase
       .from('devices')
       .select('*')
@@ -32,7 +45,7 @@ export async function deviceAuth(req: Request) {
       .eq('device_id', dev.id)
       .maybeSingle();
 
-    if (!cred || cred.token_hash?.trim() !== token) {
+    if (cred && cred.token_hash?.trim() !== token) {
       throw new AppError('UNAUTHENTICATED', 401, 'Token atau Device UID tidak valid');
     }
 
