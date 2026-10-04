@@ -80,17 +80,17 @@ export const createAssignmentSchema = z.object({
 
 export const heartbeatSchema = z.object({
   firmware_version: z.string().max(32),
-  current_profile_id: z.string().uuid().nullable(),
-  current_profile_version: z.number().int().min(0),
-  ip_address: z.string().optional(),
-  battery: z.number().int().min(0).max(100).optional(),
-  signal_strength: z.number().int().min(-120).max(0).optional(),
-  timestamp: z.string().optional(),
+  current_profile_id: z.string().nullable().optional(),
+  current_profile_version: z.number().int().min(0).nullable().optional(),
+  ip_address: z.string().nullable().optional(),
+  battery: z.number().int().min(0).max(100).nullable().optional(),
+  signal_strength: z.number().int().min(-120).max(0).nullable().optional(),
+  timestamp: z.string().nullable().optional(),
 });
 
 export const syncAckSchema = z.object({
-  profile_id: z.string().uuid(),
-  version: z.number().int().min(1),
+  profile_id: z.string(),
+  version: z.number().int().min(0),
   success: z.boolean(),
-  error: z.string().max(200).optional(),
+  error: z.string().max(200).nullable().optional(),
 });

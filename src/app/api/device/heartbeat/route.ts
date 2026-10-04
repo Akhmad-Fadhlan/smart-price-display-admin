@@ -8,6 +8,6 @@ export const dynamic = 'force-dynamic';
 export const POST = withApi(async (req: Request) => {
   const { device } = await deviceAuth(req);
   const body = await req.json();
-  const result = processDeviceHeartbeat(device, body);
+  const result = await processDeviceHeartbeat(device, body);
   return jsonResponse(result);
 });
