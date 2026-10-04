@@ -154,6 +154,18 @@ export default function DeviceDetailPage() {
     }
   };
 
+  const handleMarkSynced = async () => {
+    setActionLoading(true);
+    try {
+      await fetch(`/api/devices/${deviceId}/mark-synced`, { method: 'POST' });
+      fetchDevice();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleRotateToken = async () => {
     setActionLoading(true);
     try {
@@ -392,6 +404,17 @@ export default function DeviceDetailPage() {
             >
               <RotateCw className="w-4 h-4 text-amber-600" />
               <span>Force Re-sync</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              size="md"
+              className="justify-start text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+              onClick={handleMarkSynced}
+              isLoading={actionLoading}
+            >
+              <Check className="w-4 h-4 text-emerald-600" />
+              <span>Tandai Ter-sync</span>
             </Button>
 
             <Button

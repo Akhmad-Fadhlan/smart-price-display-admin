@@ -243,14 +243,19 @@ export async function getDeviceConfig(device: DeviceRecord) {
 
     const isForceResync = Boolean(syncRow?.force_resync || syncRow?.synced_version !== profile.version);
 
-    // Update sync status
+    // Update sync status directly to synced upon config fetch
     await supabase
       .from('device_sync_status')
       .upsert({
         device_id: device.id,
         profile_id: profile.id,
         profile_version: profile.version,
-        sync_status: 'syncing',
+        synced_profile_id: profile.id,
+        synced_version: profile.version,
+        sync_status: 'synced',
+        force_resync: false,
+        last_sync: now,
+        last_error: null,
       }, { onConflict: 'device_id' });
 
     return {

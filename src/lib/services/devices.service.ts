@@ -537,6 +537,61 @@ export async function forceResyncDevice(id: string) {
   return { success: true };
 }
 
+export async function markDeviceSynced(id: string) {
+  const supabase = getSupabaseClient();
+
+  if (supabase) {
+    const { data: effective } = await supabase
+      .from('device_effective_assignments')
+      .select('display_profile_id')
+      .eq('device_id', id)
+      .maybeSingle();
+
+    if (effective?.display_profile_id) {
+      const { data: prf } = await supabase
+        .from('display_profiles')
+        .select('id, version')
+        .eq('id', effective.display_profile_id)
+        .single();
+
+      if (prf) {
+        await supabase.from('device_sync_status').upsert({
+          device_id: id,
+          profile_id: prf.id,
+          profile_version: prf.version,
+          synced_profile_id: prf.id,
+          synced_version: prf.version,
+          sync_status: 'synced',
+          force_resync: false,
+          last_sync: new Date().toISOString(),
+          last_error: null,
+        }, { onConflict: 'device_id' });
+      }
+    }
+    return { success: true };
+  }
+
+  // Fallback
+  const sync = store.syncStatuses.get(id);
+  if (sync) {
+    const effectiveProfileId = store.getEffectiveProfileId(id);
+    const profile = effectiveProfileId ? store.profiles.get(effectiveProfileId) : null;
+    if (profile) {
+      sync.profile_id = profile.id;
+      sync.profile_version = profile.version;
+      sync.synced_profile_id = profile.id;
+      sync.synced_version = profile.version;
+      sync.sync_status = 'synced';
+      sync.force_resync = false;
+      sync.last_sync = new Date().toISOString();
+      sync.last_error = null;
+      store.syncStatuses.set(id, sync);
+    }
+  }
+
+  return { success: true };
+}
+
 export async function deleteDevice(id: string) {
   const supabase = getSupabaseClient();
 
