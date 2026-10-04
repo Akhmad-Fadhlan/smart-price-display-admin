@@ -238,26 +238,23 @@ export async function getDeviceConfig(device: DeviceRecord) {
 
     const { data: syncRow } = await supabase
       .from('device_sync_status')
-      .select('force_resync, synced_version')
+      .select('force_resync, synced_version, sync_status')
       .eq('device_id', device.id)
       .maybeSingle();
 
     const isForceResync = Boolean(syncRow?.force_resync || syncRow?.synced_version !== profile.version);
 
-    // Update sync status directly to synced upon config fetch
-    await supabase
-      .from('device_sync_status')
-      .upsert({
-        device_id: device.id,
-        profile_id: profile.id,
-        profile_version: profile.version,
-        synced_profile_id: profile.id,
-        synced_version: profile.version,
-        sync_status: 'synced',
-        force_resync: false,
-        last_sync: new Date().toISOString(),
-        last_error: null,
-      }, { onConflict: 'device_id' });
+    // Update status to 'syncing' if pending/failed/force_resync (DO NOT mark synced until sync-ack or matching heartbeat!)
+    if (isForceResync || syncRow?.sync_status === 'pending' || syncRow?.sync_status === 'failed') {
+      await supabase
+        .from('device_sync_status')
+        .upsert({
+          device_id: device.id,
+          profile_id: profile.id,
+          profile_version: profile.version,
+          sync_status: 'syncing',
+        }, { onConflict: 'device_id' });
+    }
 
     return {
       profile_id: profile.id,
