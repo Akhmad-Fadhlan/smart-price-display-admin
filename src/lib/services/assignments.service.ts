@@ -27,6 +27,12 @@ export async function createAssignments(input: z.infer<typeof createAssignmentSc
       throw new AppError('VALIDATION_ERROR', 400, error.message);
     }
 
+    if (res?.device_ids && Array.isArray(res.device_ids)) {
+      for (const devId of res.device_ids) {
+        await supabase.rpc('refresh_device_sync', { p_device_id: devId });
+      }
+    }
+
     return {
       assigned_devices: res?.assigned_devices || 0,
       device_ids: res?.device_ids || [],
@@ -152,7 +158,11 @@ export async function removeAssignment(id: string) {
   const supabase = getSupabaseClient();
 
   if (supabase) {
+    const { data: asg } = await supabase.from('device_profile_assignments').select('device_id').eq('id', id).single();
     await supabase.from('device_profile_assignments').update({ is_active: false, updated_at: new Date().toISOString() }).eq('id', id);
+    if (asg?.device_id) {
+      await supabase.rpc('refresh_device_sync', { p_device_id: asg.device_id });
+    }
     return { success: true };
   }
 
