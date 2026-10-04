@@ -19,7 +19,7 @@ export const GET = withApi(async (req: Request) => {
   const cleanIfNoneMatch = rawIfNoneMatch?.replace(/^"|"$/g, '').trim().toLowerCase();
   const targetTag = `${result.profile_id}:${result.version}`.toLowerCase();
 
-  if (cleanIfNoneMatch && cleanIfNoneMatch === targetTag) {
+  if (!result.force_resync && cleanIfNoneMatch && cleanIfNoneMatch === targetTag) {
     const supabase = getSupabaseClient();
     if (supabase) {
       await supabase.from('device_sync_status').upsert({

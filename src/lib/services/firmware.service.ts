@@ -235,6 +235,14 @@ export async function getDeviceConfig(device: DeviceRecord) {
       config = defaultConfig as any;
     }
 
+    const { data: syncRow } = await supabase
+      .from('device_sync_status')
+      .select('force_resync, synced_version')
+      .eq('device_id', device.id)
+      .maybeSingle();
+
+    const isForceResync = Boolean(syncRow?.force_resync || syncRow?.synced_version !== profile.version);
+
     // Update sync status
     await supabase
       .from('device_sync_status')
@@ -249,6 +257,7 @@ export async function getDeviceConfig(device: DeviceRecord) {
       profile_id: profile.id,
       version: profile.version,
       device_type: device.device_type,
+      force_resync: isForceResync,
       config: {
         product_name: config.product_name,
         price: config.price,
@@ -284,6 +293,7 @@ export async function getDeviceConfig(device: DeviceRecord) {
     profile_id: profile.id,
     version: profile.version,
     device_type: device.device_type,
+    force_resync: false,
     config: {
       product_name: config.product_name,
       price: config.price,
@@ -318,7 +328,7 @@ export async function processDeviceSyncAck(device: DeviceRecord, input: z.infer<
         .eq('id', effective.display_profile_id)
         .single();
 
-      if (prf && data.profile_id.toLowerCase() === prf.id.toLowerCase() && data.version === prf.version) {
+      if (prf && data.profile_id.toLowerCase() === prf.id.toLowerCase()) {
         if (data.success) {
           await supabase.from('device_sync_status').upsert({
             device_id: device.id,
