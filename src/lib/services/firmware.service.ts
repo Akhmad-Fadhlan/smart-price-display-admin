@@ -151,35 +151,99 @@ export async function getDeviceConfig(device: DeviceRecord) {
   const supabase = getSupabaseClient();
 
   if (supabase) {
-    const { data: effective } = await supabase
+    // 1. Try view device_effective_assignments
+    let { data: effective } = await supabase
       .from('device_effective_assignments')
       .select('display_profile_id')
       .eq('device_id', device.id)
       .maybeSingle();
 
-    if (!effective?.display_profile_id) return null;
+    let profileId = effective?.display_profile_id;
 
+    // 2. Direct fallback on device_profile_assignments table
+    if (!profileId) {
+      const { data: directAsg } = await supabase
+        .from('device_profile_assignments')
+        .select('display_profile_id')
+        .eq('device_id', device.id)
+        .eq('is_active', true)
+        .order('assigned_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      profileId = directAsg?.display_profile_id;
+    }
+
+    // 3. Direct fallback on group assignment if device is in a group
+    if (!profileId && device.group_id) {
+      const { data: grpAsg } = await supabase
+        .from('device_profile_assignments')
+        .select('display_profile_id')
+        .eq('group_id', device.group_id)
+        .eq('is_active', true)
+        .order('assigned_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      profileId = grpAsg?.display_profile_id;
+    }
+
+    // 4. If STILL no profile assigned, auto-create a custom profile for this device
+    if (!profileId) {
+      try {
+        const result = await createCustomProfileForDevice(device.id, `${device.name} Custom Profile`);
+        profileId = result.profileId;
+      } catch (e) {
+        console.error('[getDeviceConfig] Failed to auto-create custom profile:', e);
+      }
+    }
+
+    if (!profileId) return null;
+
+    // Fetch Profile
     const { data: profile } = await supabase
       .from('display_profiles')
       .select('id, version')
-      .eq('id', effective.display_profile_id)
-      .single();
+      .eq('id', profileId)
+      .maybeSingle();
 
     if (!profile) return null;
 
-    const { data: config } = await supabase
+    // Fetch Config
+    let { data: config } = await supabase
       .from('display_configs')
       .select('*')
       .eq('display_profile_id', profile.id)
-      .single();
+      .maybeSingle();
 
-    if (!config) return null;
+    // If config row is missing in display_configs table, insert default row
+    if (!config) {
+      const defaultConfig = {
+        display_profile_id: profile.id,
+        product_name: device.name.toUpperCase(),
+        price: 14000,
+        unit: '1L',
+        promo_text: 'PROMO SPESIAL',
+        font_size: 'large',
+        font_weight: 'bold',
+        alignment: 'center',
+        brightness: 80,
+        rotation: 0,
+        layout_config: { schema_version: 1, mode: 'auto', elements: {} },
+      };
+      await supabase.from('display_configs').insert(defaultConfig);
+      config = defaultConfig as any;
+    }
 
+    // Update sync status
     await supabase
       .from('device_sync_status')
-      .update({ sync_status: 'syncing' })
-      .eq('device_id', device.id)
-      .in('sync_status', ['pending', 'failed']);
+      .upsert({
+        device_id: device.id,
+        profile_id: profile.id,
+        profile_version: profile.version,
+        sync_status: 'syncing',
+      }, { onConflict: 'device_id' });
 
     return {
       profile_id: profile.id,
@@ -188,14 +252,14 @@ export async function getDeviceConfig(device: DeviceRecord) {
       config: {
         product_name: config.product_name,
         price: config.price,
-        unit: config.unit,
-        promo_text: config.promo_text,
-        font_size: config.font_size,
-        font_weight: config.font_weight,
-        alignment: config.alignment,
-        brightness: config.brightness,
-        rotation: config.rotation,
-        layout_config: config.layout_config,
+        unit: config.unit || '',
+        promo_text: config.promo_text || '',
+        font_size: config.font_size || 'large',
+        font_weight: config.font_weight || 'bold',
+        alignment: config.alignment || 'center',
+        brightness: config.brightness || 80,
+        rotation: config.rotation || 0,
+        layout_config: config.layout_config || { schema_version: 1, mode: 'auto', elements: {} },
       },
     };
   }
