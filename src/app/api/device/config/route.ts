@@ -38,13 +38,15 @@ export const GET = withApi(async (req: Request) => {
     return new NextResponse(null, { status: 304 });
   }
 
-  const res = jsonResponse(result);
+  const res = jsonResponse({
+    ...result,
+    _debug: {
+      supabase_connected: Boolean(getSupabaseClient()),
+      supabase_url_set: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
+      supabase_url_host: process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname : 'NONE',
+    },
+  });
   res.headers.set('ETag', `"${result.profile_id}:${result.version}"`);
   res.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
-  if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
-    try {
-      res.headers.set('X-Supabase-Url-Host', new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname);
-    } catch (e) {}
-  }
   return res;
 });

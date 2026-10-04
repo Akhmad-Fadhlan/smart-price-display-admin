@@ -109,6 +109,11 @@ export async function getProfileDetail(id: string) {
         alignment: cfg.alignment,
         brightness: cfg.brightness,
         rotation: cfg.rotation,
+        theme: cfg.theme || 'midnight_circuit',
+        product_font_color: cfg.product_font_color || '#ffffff',
+        product_font_size: cfg.product_font_size || 'large',
+        price_font_color: cfg.price_font_color || '#fde047',
+        price_font_size: cfg.price_font_size || 'xlarge',
         layout_config: cfg.layout_config,
       },
       device_count: assignedDevices.length,
@@ -145,6 +150,11 @@ export async function getProfileDetail(id: string) {
       alignment: cfg.alignment,
       brightness: cfg.brightness,
       rotation: cfg.rotation,
+      theme: cfg.theme || 'midnight_circuit',
+      product_font_color: cfg.product_font_color || '#ffffff',
+      product_font_size: cfg.product_font_size || 'large',
+      price_font_color: cfg.price_font_color || '#fde047',
+      price_font_size: cfg.price_font_size || 'xlarge',
       layout_config: cfg.layout_config,
     },
     device_count: deviceCount,
@@ -233,6 +243,11 @@ export async function duplicateProfile(sourceProfileId: string, newName: string)
       alignment: sourceCfg.alignment,
       brightness: sourceCfg.brightness,
       rotation: sourceCfg.rotation,
+      theme: sourceCfg.theme,
+      product_font_color: sourceCfg.product_font_color,
+      product_font_size: sourceCfg.product_font_size,
+      price_font_color: sourceCfg.price_font_color,
+      price_font_size: sourceCfg.price_font_size,
       layout_config: sourceCfg.layout_config,
     };
 
@@ -288,6 +303,11 @@ export async function duplicateProfile(sourceProfileId: string, newName: string)
     alignment: sourceCfg.alignment,
     brightness: sourceCfg.brightness,
     rotation: sourceCfg.rotation,
+    theme: sourceCfg.theme ?? 'midnight_circuit',
+    product_font_color: sourceCfg.product_font_color ?? '#ffffff',
+    product_font_size: sourceCfg.product_font_size ?? 'large',
+    price_font_color: sourceCfg.price_font_color ?? '#fde047',
+    price_font_size: sourceCfg.price_font_size ?? 'xlarge',
     layout_config: JSON.parse(JSON.stringify(sourceCfg.layout_config)),
     created_at: now,
     updated_at: now,
@@ -391,6 +411,11 @@ export async function updateProfile(id: string, input: z.infer<typeof updateProf
       alignment: data.config.alignment !== undefined ? data.config.alignment : cfg.alignment,
       brightness: data.config.brightness !== undefined ? data.config.brightness : cfg.brightness,
       rotation: data.config.rotation !== undefined ? data.config.rotation : cfg.rotation,
+      theme: data.config.theme !== undefined ? data.config.theme : cfg.theme,
+      product_font_color: data.config.product_font_color !== undefined ? data.config.product_font_color : cfg.product_font_color,
+      product_font_size: data.config.product_font_size !== undefined ? data.config.product_font_size : cfg.product_font_size,
+      price_font_color: data.config.price_font_color !== undefined ? data.config.price_font_color : cfg.price_font_color,
+      price_font_size: data.config.price_font_size !== undefined ? data.config.price_font_size : cfg.price_font_size,
       layout_config: data.config.layout_config !== undefined ? data.config.layout_config : cfg.layout_config,
     };
 
@@ -404,6 +429,11 @@ export async function updateProfile(id: string, input: z.infer<typeof updateProf
       mergedConfig.alignment !== cfg.alignment ||
       mergedConfig.brightness !== cfg.brightness ||
       mergedConfig.rotation !== cfg.rotation ||
+      mergedConfig.theme !== cfg.theme ||
+      mergedConfig.product_font_color !== cfg.product_font_color ||
+      mergedConfig.product_font_size !== cfg.product_font_size ||
+      mergedConfig.price_font_color !== cfg.price_font_color ||
+      mergedConfig.price_font_size !== cfg.price_font_size ||
       JSON.stringify(mergedConfig.layout_config) !== JSON.stringify(cfg.layout_config);
 
     if (hasChanged) {
@@ -416,6 +446,11 @@ export async function updateProfile(id: string, input: z.infer<typeof updateProf
       cfg.alignment = mergedConfig.alignment;
       cfg.brightness = mergedConfig.brightness;
       cfg.rotation = mergedConfig.rotation;
+      cfg.theme = mergedConfig.theme;
+      cfg.product_font_color = mergedConfig.product_font_color;
+      cfg.product_font_size = mergedConfig.product_font_size;
+      cfg.price_font_color = mergedConfig.price_font_color;
+      cfg.price_font_size = mergedConfig.price_font_size;
       cfg.layout_config = mergedConfig.layout_config;
       cfg.updated_at = now;
 

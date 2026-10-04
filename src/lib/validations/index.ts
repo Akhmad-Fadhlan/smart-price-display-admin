@@ -27,6 +27,11 @@ export const displayConfigSchema = z.object({
   alignment: z.enum(['left', 'center', 'right']).default('center'),
   brightness: z.number().int().min(5, 'Minimum brightness 5%').max(100, 'Maximum brightness 100%').default(80),
   rotation: z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]).default(0),
+  theme: z.string().default('midnight_circuit'),
+  product_font_color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Hex color must be #RRGGBB').default('#ffffff'),
+  product_font_size: z.enum(['small', 'medium', 'large', 'xlarge']).default('large'),
+  price_font_color: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Hex color must be #RRGGBB').default('#fde047'),
+  price_font_size: z.enum(['small', 'medium', 'large', 'xlarge']).default('xlarge'),
   layout_config: layoutConfigSchema.default({ schema_version: 1, mode: 'auto', elements: {} }),
 });
 

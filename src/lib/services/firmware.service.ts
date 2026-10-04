@@ -294,6 +294,11 @@ export async function getDeviceConfig(device: DeviceRecord) {
         alignment: config.alignment || 'center',
         brightness: config.brightness || 80,
         rotation: config.rotation || 0,
+        theme: config.theme || 'midnight_circuit',
+        product_font_color: config.product_font_color || '#ffffff',
+        product_font_size: config.product_font_size || 'large',
+        price_font_color: config.price_font_color || '#fde047',
+        price_font_size: config.price_font_size || 'xlarge',
         layout_config: config.layout_config || { schema_version: 1, mode: 'auto', elements: {} },
       },
     };
@@ -330,6 +335,11 @@ export async function getDeviceConfig(device: DeviceRecord) {
       alignment: config.alignment,
       brightness: config.brightness,
       rotation: config.rotation,
+      theme: config.theme || 'midnight_circuit',
+      product_font_color: config.product_font_color || '#ffffff',
+      product_font_size: config.product_font_size || 'large',
+      price_font_color: config.price_font_color || '#fde047',
+      price_font_size: config.price_font_size || 'xlarge',
       layout_config: config.layout_config,
     },
   };
