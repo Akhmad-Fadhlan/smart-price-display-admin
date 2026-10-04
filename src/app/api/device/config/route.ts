@@ -6,6 +6,7 @@ import { getSupabaseClient } from '@/lib/supabase/get-client';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export const GET = withApi(async (req: Request) => {
   const { device } = await deviceAuth(req);
@@ -39,5 +40,6 @@ export const GET = withApi(async (req: Request) => {
 
   const res = jsonResponse(result);
   res.headers.set('ETag', `"${result.profile_id}:${result.version}"`);
+  res.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
   return res;
 });
